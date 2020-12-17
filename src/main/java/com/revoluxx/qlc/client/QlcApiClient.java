@@ -85,7 +85,10 @@ public class QlcApiClient extends Endpoint implements Closeable {
 		}
 	}
 
-	public synchronized <T> T executeQuery(final QlcApiQuery<? extends ResponseParser<T>> query) throws IOException, InterruptedException {
+	public <T> T executeQuery(final QlcApiQuery<? extends ResponseParser<T>> query) throws IOException, InterruptedException, QlcApiClientException {
+		if (query.getResponseParser() == null) {
+			throw new QlcApiClientException("This query cannot be executed in response mode, call executeQueryWithoutResult instead");
+		}
 		locksByCommandCall.putIfAbsent(query.getCommand(), new ReentrantLock());
 		Lock commandCallLock = locksByCommandCall.get(query.getCommand());
 		commandCallLock.lock();
@@ -96,6 +99,13 @@ public class QlcApiClient extends Endpoint implements Closeable {
 			commandCallLock.unlock();
 		}
 		return query.getResponseParser().parseResponse(extractResponseBody(wsResult, query.getResponseHeader()), query.getResponseHeader());
+	}
+
+	public void executeQueryWithoutResponse(final QlcApiQuery<? extends ResponseParser<?>> query) throws IOException, QlcApiClientException {
+		if (query.getResponseParser() != null) {
+			throw new QlcApiClientException("This query cannot be executed in no-response mode, call executeQuery instead");
+		}
+		wsExecutor.callApiWithoutReply(query);
 	}
 
 	protected String extractResponseBody(final String response, final String responseHeader) {

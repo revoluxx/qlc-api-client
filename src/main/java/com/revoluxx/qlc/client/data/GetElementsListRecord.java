@@ -2,19 +2,18 @@ package com.revoluxx.qlc.client.data;
 
 import java.io.Serializable;
 
-public class GetFunctionsListRecord implements Serializable {
+public class GetElementsListRecord implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
 	private String id;
-	
 	private String name;
 
-	public GetFunctionsListRecord() {
+	public GetElementsListRecord() {
 		
 	}
 
-	public GetFunctionsListRecord(final String id, final String name) {
+	public GetElementsListRecord(final String id, final String name) {
 		this.id = id;
 		this.name = name;
 	}

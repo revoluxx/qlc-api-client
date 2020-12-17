@@ -10,7 +10,7 @@ public enum CommandCategory {
 	CMD("QLC+CMD|"),
 	IO("QLC+IO|"),
 	SYS("QLC+SYS|"),
-	CHANNEL("CH|"),
+	CHANNEL("CH"),
 	HIGH_RATE(""),
 	POLL("POLL");
 

@@ -4,9 +4,14 @@ import java.io.Serializable;
 
 import com.revoluxx.qlc.client.data.parser.FunctionStatusResponseParser;
 import com.revoluxx.qlc.client.data.parser.FunctionTypeResponseParser;
-import com.revoluxx.qlc.client.data.parser.GetFunctionsListParser;
+import com.revoluxx.qlc.client.data.parser.GetChannelsValuesParser;
+import com.revoluxx.qlc.client.data.parser.GetElementsListResponseParser;
+import com.revoluxx.qlc.client.data.parser.IntegerResponseParser;
 import com.revoluxx.qlc.client.data.parser.ResponseParser;
+import com.revoluxx.qlc.client.data.parser.StringResponseParser;
+import com.revoluxx.qlc.client.data.parser.WidgetTypeResponseParser;
 import com.revoluxx.qlc.client.enums.CommandCategory;
+import com.revoluxx.qlc.client.enums.FunctionStatus;
 
 public class QlcApiQuery<T extends ResponseParser<?>> implements Serializable {
 
@@ -36,11 +41,27 @@ public class QlcApiQuery<T extends ResponseParser<?>> implements Serializable {
 		return responseParser;
 	}
 
-	public static QlcApiQuery<GetFunctionsListParser> getFunctionsList() {
+	public static QlcApiQuery<GetChannelsValuesParser> getChannelsValues(int universeIndex, int startAddress, int channelsCount) {
+		final StringBuilder sbCommand = new StringBuilder(CommandCategory.API.getValue());
+		sbCommand.append("getChannelsValues");
+		final String responseHeader = sbCommand.toString();
+		sbCommand.append(formatCommandArgs(Integer.toString(universeIndex), Integer.toString(startAddress), Integer.toString(channelsCount)));
+		final GetChannelsValuesParser parser = new GetChannelsValuesParser();
+		return new QlcApiQuery<GetChannelsValuesParser>(sbCommand.toString(), responseHeader, parser);
+	}
+
+	public static QlcApiQuery<GetElementsListResponseParser> getFunctionsList() {
 		final String command = CommandCategory.API.getValue() + "getFunctionsList";
 		final String responseHeader = command;
-		final GetFunctionsListParser parser = new GetFunctionsListParser();
-		return new QlcApiQuery<GetFunctionsListParser>(command, responseHeader, parser);
+		final GetElementsListResponseParser parser = new GetElementsListResponseParser();
+		return new QlcApiQuery<GetElementsListResponseParser>(command, responseHeader, parser);
+	}
+
+	public static QlcApiQuery<IntegerResponseParser> getFunctionsNumber() {
+		final String command = CommandCategory.API.getValue() + "getFunctionsNumber";
+		final String responseHeader = command;
+		final IntegerResponseParser parser = new IntegerResponseParser();
+		return new QlcApiQuery<IntegerResponseParser>(command, responseHeader, parser);
 	}
 
 	public static QlcApiQuery<FunctionTypeResponseParser> getFunctionType(String functionId) {
@@ -59,6 +80,52 @@ public class QlcApiQuery<T extends ResponseParser<?>> implements Serializable {
 		sbCommand.append(formatCommandArgs(functionId));
 		final FunctionStatusResponseParser parser = new FunctionStatusResponseParser();
 		return new QlcApiQuery<FunctionStatusResponseParser>(sbCommand.toString(), responseHeader, parser);
+	}
+
+	public static QlcApiQuery<ResponseParser<?>> setFunctionStatus(String functionId, FunctionStatus status) {
+		final StringBuilder sbCommand = new StringBuilder(CommandCategory.API.getValue());
+		sbCommand.append("setFunctionStatus");
+		sbCommand.append(formatCommandArgs(functionId, status.getValue()));
+		return new QlcApiQuery<ResponseParser<?>>(sbCommand.toString(), null, null);
+	}
+
+	public static QlcApiQuery<GetElementsListResponseParser> getWidgetsList() {
+		final String command = CommandCategory.API.getValue() + "getWidgetsList";
+		final String responseHeader = command;
+		final GetElementsListResponseParser parser = new GetElementsListResponseParser();
+		return new QlcApiQuery<GetElementsListResponseParser>(command, responseHeader, parser);
+	}
+
+	public static QlcApiQuery<IntegerResponseParser> getWidgetsNumber() {
+		final String command = CommandCategory.API.getValue() + "getWidgetsNumber";
+		final String responseHeader = command;
+		final IntegerResponseParser parser = new IntegerResponseParser();
+		return new QlcApiQuery<IntegerResponseParser>(command, responseHeader, parser);
+	}
+
+	public static QlcApiQuery<WidgetTypeResponseParser> getWidgetType(String widgetId) {
+		final StringBuilder sbCommand = new StringBuilder(CommandCategory.API.getValue());
+		sbCommand.append("getWidgetType");
+		final String responseHeader = sbCommand.toString();
+		sbCommand.append(formatCommandArgs(widgetId));
+		final WidgetTypeResponseParser parser = new WidgetTypeResponseParser();
+		return new QlcApiQuery<WidgetTypeResponseParser>(sbCommand.toString(), responseHeader, parser);
+	}
+
+	public static QlcApiQuery<StringResponseParser> getWidgetStatus(String widgetId) {
+		final StringBuilder sbCommand = new StringBuilder(CommandCategory.API.getValue());
+		sbCommand.append("getWidgetStatus");
+		final String responseHeader = sbCommand.toString();
+		sbCommand.append(formatCommandArgs(widgetId));
+		final StringResponseParser parser = new StringResponseParser();
+		return new QlcApiQuery<StringResponseParser>(sbCommand.toString(), responseHeader, parser);
+	}
+
+	public static QlcApiQuery<ResponseParser<?>> setChannelValue(int universeIndex, int channelAddress, int channelDmxValue) {
+		final int absoluteChannelAddress = channelAddress + ((universeIndex - 1) * 512);
+		final StringBuilder sbCommand = new StringBuilder(CommandCategory.CHANNEL.getValue());
+		sbCommand.append(formatCommandArgs(Integer.toString(absoluteChannelAddress), Integer.toString(channelDmxValue)));
+		return new QlcApiQuery<ResponseParser<?>>(sbCommand.toString(), null, null);
 	}
 
 	protected static String formatCommandArgs(final String... commandArgs) {

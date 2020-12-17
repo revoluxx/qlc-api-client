@@ -46,6 +46,10 @@ public class QlcApiSynchronousExecutor implements MessageHandler.Whole<String> {
 		return result;
 	}
 
+	public void callApiWithoutReply(final QlcApiQuery<?> command) throws IOException {
+		remote.sendText(command.getCommand());
+	}
+
 	@Override
 	public void onMessage(String message) {
 		final SyncSemaphoreBuffer semaphore = retrieveAwaitingSemaphore(message);

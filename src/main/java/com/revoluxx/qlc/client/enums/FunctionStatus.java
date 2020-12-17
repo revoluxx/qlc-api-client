@@ -5,13 +5,14 @@ import java.util.Map;
 
 public enum FunctionStatus {
 
-	RUNNING("Running"),
-	STOPPED("Stopped"),
-	UNDEFINED("Undefined");
+	RUNNING("Running", "1"),
+	STOPPED("Stopped", "0"),
+	UNDEFINED("Undefined", "");
 
 	private static final Map<String, FunctionStatus> map = new HashMap<String, FunctionStatus>();
 
 	private final String name;
+	private final String value;
 
 	static {
 		for (FunctionStatus functionType : FunctionStatus.values()) {
@@ -19,8 +20,9 @@ public enum FunctionStatus {
 		}
 	}
 
-	private FunctionStatus(String name) {
+	private FunctionStatus(String name, String value) {
 		this.name = name;
+		this.value = value;
 	}
 
 	public static FunctionStatus ofName(String name) {
@@ -29,6 +31,10 @@ public enum FunctionStatus {
 
 	public String getName() {
 		return name;
+	}
+
+	public String getValue() {
+		return value;
 	}
 
 }

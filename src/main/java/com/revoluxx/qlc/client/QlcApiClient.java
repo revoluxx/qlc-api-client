@@ -4,9 +4,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.websocket.ClientEndpointConfig;
 import javax.websocket.ClientEndpointConfig.Configurator;
@@ -19,7 +21,8 @@ import javax.websocket.WebSocketContainer;
 
 import org.glassfish.tyrus.client.ClientManager;
 
-import com.revoluxx.qlc.client.data.GetFunctionsListRecord;
+import com.revoluxx.qlc.client.data.parser.ResponseParser;
+import com.revoluxx.qlc.client.enums.CommandCategory;
 import com.revoluxx.qlc.client.exception.QlcApiClientException;
 import com.revoluxx.qlc.client.ws.QlcApiClientAuthConfigurator;
 import com.revoluxx.qlc.client.ws.QlcApiSynchronousExecutor;
@@ -37,6 +40,8 @@ public class QlcApiClient extends Endpoint implements Closeable {
 	private final ClientEndpointConfig clientEndpointConfig;
 	private final WebSocketContainer wsClient;
 	private final QlcApiSynchronousExecutor wsExecutor;
+	
+	private final Map<String, Lock> locksByCommandCall;
 
 	private Session wsSession;
 
@@ -59,12 +64,15 @@ public class QlcApiClient extends Endpoint implements Closeable {
 		} else {
 			this.clientEndpointConfig = builder.clientEndpointConfig;
 		}
+		
 		if (builder.wsClient == null) {
 			this.wsClient = ClientManager.createClient();
 		} else {
 			this.wsClient = builder.wsClient;
 		}
+		
 		this.wsExecutor = new QlcApiSynchronousExecutor();
+		this.locksByCommandCall = new ConcurrentHashMap<String, Lock>();
 	}
 
 	public void connect() throws DeploymentException, IOException, URISyntaxException, QlcApiClientException {
@@ -77,26 +85,27 @@ public class QlcApiClient extends Endpoint implements Closeable {
 		}
 	}
 
-	public synchronized List<GetFunctionsListRecord> getFunctionsList() throws IOException, InterruptedException {
-		final String command = "QLC+API|getFunctionsList";
-		String wsResult = wsExecutor.callApi(command);
-		final List<GetFunctionsListRecord> result = formatList(wsResult);
-		return result;
+	public synchronized <T> T executeQuery(final QlcApiQuery<? extends ResponseParser<T>> query) throws IOException, InterruptedException {
+		locksByCommandCall.putIfAbsent(query.getCommand(), new ReentrantLock());
+		Lock commandCallLock = locksByCommandCall.get(query.getCommand());
+		commandCallLock.lock();
+		String wsResult = null;
+		try {
+			wsResult = wsExecutor.callApi(query);
+		} finally {
+			commandCallLock.unlock();
+		}
+		return query.getResponseParser().parseResponse(extractResponseBody(wsResult, query.getResponseHeader()), query.getResponseHeader());
 	}
 
-	private List<GetFunctionsListRecord> formatList(final String data) {
-		List<GetFunctionsListRecord> result = null;
-		if (data != null) {
-			String[] splitedData = data.split("\\|");
-			if (splitedData.length >= 4 && (splitedData.length % 2) == 0) {
-				result = new ArrayList<GetFunctionsListRecord>();
-				int i = 2;
-				while (i < splitedData.length) {
-					result.add(new GetFunctionsListRecord(splitedData[i++], splitedData[i++]));
-				}
-			}
+	protected String extractResponseBody(final String response, final String responseHeader) {
+		String responseBody = response.substring(responseHeader.length());
+		if (responseBody.isEmpty()) {
+			responseBody = null;
+		} else if (responseBody.charAt(0) == CommandCategory.COMMAND_SEPARATOR) {
+			responseBody = responseBody.substring(1);
 		}
-		return result;
+		return responseBody;
 	}
 
 	public void close() throws IOException {

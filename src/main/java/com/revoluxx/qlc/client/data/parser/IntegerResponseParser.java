@@ -9,7 +9,7 @@ public class IntegerResponseParser implements ResponseParser<Integer> {
 			try {
 				responseData = Integer.parseInt(responseBody);
 			} catch (NumberFormatException nfe) {
-				nfe.printStackTrace();
+				System.out.println("Invalid/NaN response");
 			}
 		}
 		return responseData;

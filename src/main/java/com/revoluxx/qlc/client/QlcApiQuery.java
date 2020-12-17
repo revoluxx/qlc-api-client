@@ -12,12 +12,22 @@ import com.revoluxx.qlc.client.data.parser.StringResponseParser;
 import com.revoluxx.qlc.client.data.parser.WidgetTypeResponseParser;
 import com.revoluxx.qlc.client.enums.CommandCategory;
 import com.revoluxx.qlc.client.enums.FunctionStatus;
+import com.revoluxx.qlc.client.exception.QlcApiClientException;
 
+/**
+ * Query builder for the QlcApiClient.<br>
+ * Use in conjunction with executeQuery/executeQueryWithoutResponse.<br>
+ * Most of the QLC+ API commands definitions are available from this class.<br>
+ * See: https://qlcplus.org/Test_Web_API.html
+ *
+ * @param <T> - command response parser type for the query
+ * @see QlcApiClient
+ */
 public class QlcApiQuery<T extends ResponseParser<?>> implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
-	public static char COMMAND_SEPARATOR = '|';
+	public static final char COMMAND_SEPARATOR = '|';
 
 	protected final String command;
 	protected final String responseHeader;
@@ -121,11 +131,19 @@ public class QlcApiQuery<T extends ResponseParser<?>> implements Serializable {
 		return new QlcApiQuery<StringResponseParser>(sbCommand.toString(), responseHeader, parser);
 	}
 
-	public static QlcApiQuery<ResponseParser<?>> setChannelValue(int universeIndex, int channelAddress, int channelDmxValue) {
+	public static QlcApiQuery<ResponseParser<?>> setChannelValue(int universeIndex, int channelAddress, int channelDmxValue) throws QlcApiClientException {
+		checkDmxValue(channelDmxValue);
 		final int absoluteChannelAddress = channelAddress + ((universeIndex - 1) * 512);
 		final StringBuilder sbCommand = new StringBuilder(CommandCategory.CHANNEL.getValue());
 		sbCommand.append(formatCommandArgs(Integer.toString(absoluteChannelAddress), Integer.toString(channelDmxValue)));
 		return new QlcApiQuery<ResponseParser<?>>(sbCommand.toString(), null, null);
+	}
+
+	public static QlcApiQuery<ResponseParser<?>> setBasicWidgetValue(String widgetId, boolean value) {
+		final String commandValue = value ? "255" : "0";
+		String command = formatCommandArgs(widgetId, commandValue);
+		command = command.substring(1);
+		return new QlcApiQuery<ResponseParser<?>>(command, null, null);
 	}
 
 	protected static String formatCommandArgs(final String... commandArgs) {
@@ -134,6 +152,12 @@ public class QlcApiQuery<T extends ResponseParser<?>> implements Serializable {
 			sb.append(CommandCategory.COMMAND_SEPARATOR).append(commandArg);
 		}
 		return sb.toString();
+	}
+
+	protected static void checkDmxValue(int dmxValue) throws QlcApiClientException {
+		if (dmxValue < 0 || dmxValue > 255) {
+			throw new QlcApiClientException("DMX value must be in range 0-255");
+		}
 	}
 
 }

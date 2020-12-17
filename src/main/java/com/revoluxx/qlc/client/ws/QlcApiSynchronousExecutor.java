@@ -11,6 +11,7 @@ import javax.websocket.MessageHandler;
 import javax.websocket.RemoteEndpoint;
 
 import com.revoluxx.qlc.client.QlcApiQuery;
+import com.revoluxx.qlc.client.exception.QlcApiNoResponseException;
 
 public class QlcApiSynchronousExecutor implements MessageHandler.Whole<String> {
 
@@ -23,7 +24,7 @@ public class QlcApiSynchronousExecutor implements MessageHandler.Whole<String> {
 	public QlcApiSynchronousExecutor() {
 	}
 
-	public String callApi(final QlcApiQuery<?> command) {
+	public String callApi(final QlcApiQuery<?> command) throws IOException, QlcApiNoResponseException {
 		String result = null;
 		try {
 			final SyncSemaphoreBuffer semaphore = new SyncSemaphoreBuffer();
@@ -40,8 +41,11 @@ public class QlcApiSynchronousExecutor implements MessageHandler.Whole<String> {
 			semaphore.getReadBarrier().await(3L, TimeUnit.SECONDS);
 			result = semaphore.getData();
 			awaitingCommandResponses.remove(command.getResponseHeader());
-		} catch (InterruptedException | IOException ex) {
-			ex.printStackTrace();
+			if (result == null) {
+				throw new QlcApiNoResponseException("No response/timeout from QLC+ to the command");
+			}
+		} catch (InterruptedException intex) {
+			intex.printStackTrace();
 		}
 		return result;
 	}

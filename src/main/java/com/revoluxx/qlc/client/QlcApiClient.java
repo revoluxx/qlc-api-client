@@ -24,9 +24,17 @@ import org.glassfish.tyrus.client.ClientManager;
 import com.revoluxx.qlc.client.data.parser.ResponseParser;
 import com.revoluxx.qlc.client.enums.CommandCategory;
 import com.revoluxx.qlc.client.exception.QlcApiClientException;
+import com.revoluxx.qlc.client.exception.QlcApiNoResponseException;
 import com.revoluxx.qlc.client.ws.QlcApiClientAuthConfigurator;
 import com.revoluxx.qlc.client.ws.QlcApiSynchronousExecutor;
 
+/**
+ * Main class of the QLC+ WebSocket API client, providing calling facilities.
+ * This class is thread-safe, only one instance needs to be created per application/QLC+ instance.
+ * To start with a new instance of this QlcApiClient, use the embedded Builder class, ie for default configuration:<br>
+ * QlcApiClient.builder().build();<br>
+ * @see Builder
+ */
 public class QlcApiClient extends Endpoint implements Closeable {
 
 	private final String host;
@@ -45,6 +53,11 @@ public class QlcApiClient extends Endpoint implements Closeable {
 
 	private Session wsSession;
 
+	/**
+	 * Private constructor: use the Builder to create an instance of the QlcApiClient
+	 * 
+	 * @param builder
+	 */
 	private QlcApiClient(Builder builder) {
 		this.host = builder.host;
 		this.port = builder.port;
@@ -75,6 +88,15 @@ public class QlcApiClient extends Endpoint implements Closeable {
 		this.locksByCommandCall = new ConcurrentHashMap<String, Lock>();
 	}
 
+	/**
+	 * Open or reopen the WebSocket connection to QLC+, try to create a new WS session.<br>
+	 * To be done once prior to execute any API query/command ! 
+	 * 
+	 * @throws DeploymentException internal error while initializing websocket client
+	 * @throws IOException communication error while establishing connection (QLC+ websocket server unavailable/not started ?)
+	 * @throws URISyntaxException host/port/path provided are invalid url for the websocket
+	 * @throws QlcApiClientException Unexpected error while opening session
+	 */
 	public void connect() throws DeploymentException, IOException, URISyntaxException, QlcApiClientException {
 		if (wsSession == null || !wsSession.isOpen()) {
 			final URI wsUri = getWsUri();
@@ -85,7 +107,18 @@ public class QlcApiClient extends Endpoint implements Closeable {
 		}
 	}
 
-	public <T> T executeQuery(final QlcApiQuery<? extends ResponseParser<T>> query) throws IOException, InterruptedException, QlcApiClientException {
+	/**
+	 * Execute/send the provided query/command to QLC+ API, with response/result expected.
+	 * 
+	 * @param <T> - the expected type of the command result (inferred from query definition)
+	 * @param query - the command to execute: use QlcApiQuery to create one
+	 * @return the API call response/result
+	 * @throws IOException
+	 * @throws QlcApiClientException
+	 * @throws QlcApiNoResponseException
+	 * @see QlcApiQuery
+	 */
+	public <T> T executeQuery(final QlcApiQuery<? extends ResponseParser<T>> query) throws IOException, QlcApiClientException, QlcApiNoResponseException {
 		if (query.getResponseParser() == null) {
 			throw new QlcApiClientException("This query cannot be executed in response mode, call executeQueryWithoutResult instead");
 		}
@@ -101,6 +134,13 @@ public class QlcApiClient extends Endpoint implements Closeable {
 		return query.getResponseParser().parseResponse(extractResponseBody(wsResult, query.getResponseHeader()), query.getResponseHeader());
 	}
 
+	/**
+	 * Execute/send the provided one way query/command to QLC+ API, without waiting for any response/result.
+	 * 
+	 * @param query - the command to execute: use QlcApiQuery to create one
+	 * @throws IOException
+	 * @throws QlcApiClientException
+	 */
 	public void executeQueryWithoutResponse(final QlcApiQuery<? extends ResponseParser<?>> query) throws IOException, QlcApiClientException {
 		if (query.getResponseParser() != null) {
 			throw new QlcApiClientException("This query cannot be executed in no-response mode, call executeQuery instead");
@@ -118,6 +158,9 @@ public class QlcApiClient extends Endpoint implements Closeable {
 		return responseBody;
 	}
 
+	/**
+	 * Close the opened WebSocket session.
+	 */
 	public void close() throws IOException {
 		if (wsSession != null && wsSession.isOpen()) {
 			wsSession.close();
@@ -132,6 +175,7 @@ public class QlcApiClient extends Endpoint implements Closeable {
 
 	@Override
 	public void onClose(Session session, CloseReason closeReason) {
+		// In case of abnormal session closure and when autoReconnect is active, block any current query and try to reconnect
 		if (autoReconnect && !CloseReason.CloseCodes.NORMAL_CLOSURE.equals(closeReason.getCloseCode())) {
 			try {
 				wsExecutor.getExecutionLock().tryLock(5L, TimeUnit.SECONDS);
@@ -139,7 +183,7 @@ public class QlcApiClient extends Endpoint implements Closeable {
 				e1.printStackTrace();
 			}
 			try {
-				System.out.println("Abnormal session closing: " + closeReason.getReasonPhrase());
+				System.out.println("Abnormal session closure: " + closeReason.getReasonPhrase());
 				boolean reconnected = false;
 				for(int attempts = 0; !reconnected && attempts < autoReconnectMaxAttempts; attempts++) {
 					System.out.println(attempts + " reconnection attempt");

@@ -40,12 +40,13 @@ public class QlcApiSynchronousExecutor implements MessageHandler.Whole<String> {
 			semaphore.getWriterBarrier().countDown();
 			semaphore.getReadBarrier().await(3L, TimeUnit.SECONDS);
 			result = semaphore.getData();
-			awaitingCommandResponses.remove(command.getResponseHeader());
 			if (result == null) {
 				throw new QlcApiNoResponseException("No response/timeout from QLC+ to the command");
 			}
 		} catch (InterruptedException intex) {
 			intex.printStackTrace();
+		} finally {
+			awaitingCommandResponses.remove(command.getResponseHeader());
 		}
 		return result;
 	}

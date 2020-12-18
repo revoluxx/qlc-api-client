@@ -4,7 +4,7 @@
 
 	<groupId>com.revoluxx.qlc</groupId>
 	<artifactId>qlc-api-client</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<packaging>jar</packaging>
 
 	<name>QLC+ WebSocket API client for Java</name>

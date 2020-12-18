@@ -108,7 +108,8 @@ public class QlcApiClient extends Endpoint implements Closeable {
 	}
 
 	/**
-	 * Execute/send the provided query/command to QLC+ API, with response/result expected.
+	 * Execute/send the provided query/command to QLC+ API, with response/result expected.<br>
+	 * This execution is <i>synchronous by responseHeader</i>: each query will wait for the completion of another previous one expecting the same responseHeader. 
 	 * 
 	 * @param <T> - the expected type of the command result (inferred from query definition)
 	 * @param query - the command to execute: use QlcApiQuery to create one
@@ -119,11 +120,11 @@ public class QlcApiClient extends Endpoint implements Closeable {
 	 * @see QlcApiQuery
 	 */
 	public <T> T executeQuery(final QlcApiQuery<? extends ResponseParser<T>> query) throws IOException, QlcApiClientException, QlcApiNoResponseException {
-		if (query.getResponseParser() == null) {
+		if (query.getResponseHeader() == null) {
 			throw new QlcApiClientException("This query cannot be executed in response mode, call executeQueryWithoutResult instead");
 		}
-		locksByCommandCall.putIfAbsent(query.getCommand(), new ReentrantLock());
-		Lock commandCallLock = locksByCommandCall.get(query.getCommand());
+		locksByCommandCall.putIfAbsent(query.getResponseHeader(), new ReentrantLock());
+		Lock commandCallLock = locksByCommandCall.get(query.getResponseHeader());
 		commandCallLock.lock();
 		String wsResult = null;
 		try {
@@ -136,13 +137,14 @@ public class QlcApiClient extends Endpoint implements Closeable {
 
 	/**
 	 * Execute/send the provided one way query/command to QLC+ API, without waiting for any response/result.
+	 * This execution is asynchrounous and non-blocking.
 	 * 
 	 * @param query - the command to execute: use QlcApiQuery to create one
 	 * @throws IOException
 	 * @throws QlcApiClientException
 	 */
 	public void executeQueryWithoutResponse(final QlcApiQuery<? extends ResponseParser<?>> query) throws IOException, QlcApiClientException {
-		if (query.getResponseParser() != null) {
+		if (query.getResponseHeader() != null) {
 			throw new QlcApiClientException("This query cannot be executed in no-response mode, call executeQuery instead");
 		}
 		wsExecutor.callApiWithoutReply(query);

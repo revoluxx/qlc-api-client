@@ -33,6 +33,7 @@ public class QlcApiClientTest {
 				List<GetChannelsValuesRecord> channelsList = qlcClient.executeQuery(QlcApiQuery.getChannelsValues(1, 3, 12));
 				if (!channelsList.isEmpty()) {
 					int randC = new Random().nextInt(channelsList.size());
+					System.out.println(channelsList.size());
 					System.out.println(channelsList.get(randC));
 					Thread.sleep(350);
 					qlcClient.executeQueryWithoutResponse(QlcApiQuery.setChannelValue(1, channelsList.get(randC).getIndex(), 88));
@@ -50,10 +51,18 @@ public class QlcApiClientTest {
 						System.out.println(qlcClient.executeQuery(QlcApiQuery.getWidgetStatus(resultW.get(randF).getId())));
 					}
 				}
+				
+				System.out.println("=== RESET ===");
+				Thread.sleep(5000);
+				List<GetChannelsValuesRecord> resetresult = qlcClient.executeQuery(QlcApiQuery.resetUniverse());
+				System.out.println(resetresult.size());
+				Thread.sleep(10000);
+				List<GetChannelsValuesRecord> resetChresult = qlcClient.executeQuery(QlcApiQuery.resetChannel(12));
+				System.out.println(resetChresult.size());
 			} catch (Exception ex) {
 				ex.printStackTrace();
 			}
-			Thread.sleep(5000);
+			Thread.sleep(10000);
 		}
 		qlcClient.close();
 	}

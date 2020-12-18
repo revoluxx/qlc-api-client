@@ -11,11 +11,10 @@ public class GetChannelsValuesParser implements ResponseParser<List<GetChannelsV
 
 	@Override
 	public List<GetChannelsValuesRecord> parseResponse(String responseBody, String responseHeader) {
-		List<GetChannelsValuesRecord> result = null;
+		List<GetChannelsValuesRecord> result = new ArrayList<GetChannelsValuesRecord>();
 		if (!responseBody.isEmpty()) {
 			final String[] splitedData = responseBody.split("\\" + CommandCategory.COMMAND_SEPARATOR);
-			if (splitedData.length >= 2 && (splitedData.length % 2) == 0) {
-				result = new ArrayList<GetChannelsValuesRecord>();
+			if (splitedData.length >= 3 && (splitedData.length % 3) == 0) {
 				int i = 0;
 				while (i < splitedData.length) {
 					final GetChannelsValuesRecord record = new GetChannelsValuesRecord();

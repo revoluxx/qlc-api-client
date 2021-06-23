@@ -133,11 +133,11 @@ public class QlcApiQuery<T extends ResponseParser<?>> implements Serializable {
 	 * @return the query to be executed by QlcApiClient.executeQueryWithoutResponse
 	 * @see com.revoluxx.qlc.client.enums.FunctionStatus
 	 */
-	public static QlcApiQuery<ResponseParser<?>> setFunctionStatus(String functionId, FunctionStatus status) {
+	public static QlcApiQuery<StringResponseParser> setFunctionStatus(String functionId, FunctionStatus status) {
 		final StringBuilder sbCommand = new StringBuilder(CommandCategory.API.getValue());
 		sbCommand.append("setFunctionStatus");
 		sbCommand.append(formatCommandArgs(functionId, status.getValue()));
-		return new QlcApiQuery<ResponseParser<?>>(sbCommand.toString(), null, null);
+		return new QlcApiQuery<StringResponseParser>(sbCommand.toString(), null, new StringResponseParser());
 	}
 
 	/**
@@ -217,12 +217,12 @@ public class QlcApiQuery<T extends ResponseParser<?>> implements Serializable {
 	 * @return the query to be executed by QlcApiClient.executeQueryWithoutResponse
 	 * @throws QlcApiClientException if DMX value is incorrect
 	 */
-	public static QlcApiQuery<ResponseParser<?>> setChannelValue(int universeIndex, int channelAddress, int channelDmxValue) throws QlcApiClientException {
+	public static QlcApiQuery<StringResponseParser> setChannelValue(int universeIndex, int channelAddress, int channelDmxValue) throws QlcApiClientException {
 		checkDmxValue(channelDmxValue);
 		final int absoluteChannelAddress = channelAddress + ((universeIndex - 1) * 512);
 		final StringBuilder sbCommand = new StringBuilder(CommandCategory.CHANNEL.getValue());
 		sbCommand.append(formatCommandArgs(Integer.toString(absoluteChannelAddress), Integer.toString(channelDmxValue)));
-		return new QlcApiQuery<ResponseParser<?>>(sbCommand.toString(), null, null);
+		return new QlcApiQuery<StringResponseParser>(sbCommand.toString(), null, new StringResponseParser());
 	}
 
 	/**
@@ -234,11 +234,11 @@ public class QlcApiQuery<T extends ResponseParser<?>> implements Serializable {
 	 * @param value - binary value (usually true=on/false=off)
 	 * @return the query to be executed by QlcApiClient.executeQueryWithoutResponse
 	 */
-	public static QlcApiQuery<ResponseParser<?>> setBasicWidgetValue(String widgetId, boolean value) {
+	public static QlcApiQuery<StringResponseParser> setBasicWidgetValue(String widgetId, boolean value) {
 		final String commandValue = value ? "255" : "0";
 		String command = formatCommandArgs(widgetId, commandValue);
 		command = command.substring(1);
-		return new QlcApiQuery<ResponseParser<?>>(command, null, null);
+		return new QlcApiQuery<StringResponseParser>(command, null, new StringResponseParser());
 	}
 
 	/**
